@@ -1,6 +1,8 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {Button, View} from 'react-native';
 import NativeFlashlight from './specs/NativeFlashlight';
+import './global.css';
+import {TextInput} from 'react-native-paper';
 
 const MORSE_CODE: {[key: string]: string} = {
   A: '.-',
@@ -56,53 +58,61 @@ function textToMorse(text: string): string {
     .join(' ');
 }
 
-async function flashMorse(morse: string) {
-  let delay = 0;
-
-  const queue = [];
-
-  for (const char of morse) {
-    switch (char) {
-      case '.':
-        queue.push([delay, dotDuration]);
-        delay += dotDuration + symbolGap;
-        break;
-      case '-':
-        queue.push([delay, dashDuration]);
-        delay += dashDuration + symbolGap;
-        break;
-      case ' ':
-        delay += wordGap; // word space
-        break;
-    }
-  }
-
-  for (const [onDelay, duration] of queue) {
-    setTimeout(() => NativeFlashlight.turnOn(), onDelay);
-    setTimeout(() => NativeFlashlight.turnOff(), onDelay + duration);
-  }
-}
-
 function App(): React.JSX.Element {
+  const [transmitting, setTransmitting] = useState(false);
+  const [text, setText] = useState('');
+  async function flashMorse(morse: string) {
+    setTransmitting(true);
+    let delay = 0;
+
+    const queue = [];
+
+    for (const char of morse) {
+      switch (char) {
+        case '.':
+          queue.push([delay, dotDuration]);
+          delay += dotDuration + symbolGap;
+          break;
+        case '-':
+          queue.push([delay, dashDuration]);
+          delay += dashDuration + symbolGap;
+          break;
+        case ' ':
+          delay += wordGap; // word space
+          break;
+      }
+    }
+
+    for (const [onDelay, duration] of queue) {
+      setTimeout(() => NativeFlashlight.turnOn(), onDelay);
+      setTimeout(() => NativeFlashlight.turnOff(), onDelay + duration);
+    }
+    setTimeout(() => {
+      setTransmitting(false);
+    }, delay + dashDuration);
+  }
   const handleSendTextAsMorse = () => {
-    const text = 'HELLO WORLD';
     const morse = textToMorse(text);
     flashMorse(morse);
   };
 
   return (
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-      <Button
-        title="Turn On Flashlight"
-        onPress={() => NativeFlashlight.turnOn()}
+      <TextInput
+        label="Enter text"
+        mode="outlined"
+        style={{width: '80%', marginBottom: 20}}
+        placeholder="Type here..."
+        onChangeText={text => {
+          setText(text);
+        }}
+        value={text}
       />
       <Button
-        title="Turn Off Flashlight"
-        onPress={() => NativeFlashlight.turnOff()}
-      />
-      <Button
-        title="Send 'HELLO WORLD' as Morse"
+        title={transmitting ? 'Transmitting...' : 'Send text as Morse'}
         onPress={handleSendTextAsMorse}
+        disabled={transmitting}
+        color={transmitting ? 'gray' : 'blue'}
       />
     </View>
   );
