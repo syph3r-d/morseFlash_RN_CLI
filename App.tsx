@@ -1,120 +1,32 @@
 import React, {useState} from 'react';
-import {Button, View} from 'react-native';
 import NativeFlashlight from './specs/NativeFlashlight';
 import './global.css';
-import {TextInput} from 'react-native-paper';
-
-const MORSE_CODE: {[key: string]: string} = {
-  A: '.-',
-  B: '-...',
-  C: '-.-.',
-  D: '-..',
-  E: '.',
-  F: '..-.',
-  G: '--.',
-  H: '....',
-  I: '..',
-  J: '.---',
-  K: '-.-',
-  L: '.-..',
-  M: '--',
-  N: '-.',
-  O: '---',
-  P: '.--.',
-  Q: '--.-',
-  R: '.-.',
-  S: '...',
-  T: '-',
-  U: '..-',
-  V: '...-',
-  W: '.--',
-  X: '-..-',
-  Y: '-.--',
-  Z: '--..',
-  ' ': ' ',
-  '1': '.----',
-  '2': '..---',
-  '3': '...--',
-  '4': '....-',
-  '5': '.....',
-  '6': '-....',
-  '7': '--...',
-  '8': '---..',
-  '9': '----.',
-  '0': '-----',
-};
-
-const dotDuration = 200; // milliseconds
-const dashDuration = dotDuration * 3;
-const symbolGap = dotDuration;
-const letterGap = dotDuration * 3;
-const wordGap = dotDuration * 7;
-
-function textToMorse(text: string): string {
-  return text
-    .toUpperCase()
-    .split('')
-    .map(char => MORSE_CODE[char] || '')
-    .join(' ');
-}
+import {NavigationContainer} from '@react-navigation/native';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import Transmit from './views/Transmit';
+import {Receive} from './views/Receive';
 
 function App(): React.JSX.Element {
-  const [transmitting, setTransmitting] = useState(false);
-  const [text, setText] = useState('');
-  async function flashMorse(morse: string) {
-    setTransmitting(true);
-    let delay = 0;
-
-    const queue = [];
-
-    for (const char of morse) {
-      switch (char) {
-        case '.':
-          queue.push([delay, dotDuration]);
-          delay += dotDuration + symbolGap;
-          break;
-        case '-':
-          queue.push([delay, dashDuration]);
-          delay += dashDuration + symbolGap;
-          break;
-        case ' ':
-          delay += wordGap; // word space
-          break;
-      }
-    }
-
-    for (const [onDelay, duration] of queue) {
-      setTimeout(() => NativeFlashlight.turnOn(), onDelay);
-      setTimeout(() => NativeFlashlight.turnOff(), onDelay + duration);
-    }
-    setTimeout(() => {
-      setTransmitting(false);
-    }, delay + dashDuration);
-  }
-  const handleSendTextAsMorse = () => {
-    const morse = textToMorse(text);
-    flashMorse(morse);
-  };
-
+  const Stack = createNativeStackNavigator();
   return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-      <TextInput
-        label="Enter text"
-        mode="outlined"
-        style={{width: '80%', marginBottom: 20}}
-        placeholder="Type here..."
-        onChangeText={text => {
-          setText(text);
-        }}
-        value={text}
-      />
-      <Button
-        title={transmitting ? 'Transmitting...' : 'Send text as Morse'}
-        onPress={handleSendTextAsMorse}
-        disabled={transmitting}
-        color={transmitting ? 'gray' : 'blue'}
-      />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen
+          name="Transmit"
+          component={Transmit}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Receive"
+          component={Receive}
+          options={{
+            headerShown: false,
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
