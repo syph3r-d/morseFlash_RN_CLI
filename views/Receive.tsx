@@ -24,7 +24,7 @@ export default function Receive() {
 
   const THRESHOLD = 180;
   const DOT_DURATION = 200; // ms
-  const DASH_DURATION = 600; // ms
+  const DASH_DURATION = 230; // ms
   const CHAR_GAP = 1000; // ms
 
   const reset = () => {
@@ -45,6 +45,7 @@ export default function Receive() {
       const duration = now - lastChange.current;
 
       if (lastState.current === 'on') {
+        console.log(`Duration: ${duration}`);
         if (duration < DOT_DURATION) {
           collected.current.push('.'); // too short, but treat as dot
         } else if (duration < DASH_DURATION) {
