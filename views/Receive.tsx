@@ -15,13 +15,11 @@ export const Receive = () => {
   const reportBrightness = (value: number) => {
     'worklet';
 
-    console.log('Brightness:', value);
-
     // You can now use timing logic to interpret as Morse
-    if (value > 180) {
-      // Flashlight ON (custom threshold)
+    if (value > 100) {
+      console.log('Flashlight ON');
     } else {
-      // Flashlight OFF
+      console.log('Flashlight OFF');
     }
   };
   // const frameProcessor = useFrameProcessor(frame => {
@@ -38,10 +36,12 @@ export const Receive = () => {
   // }, []);
   const processRGB = (frame: Frame) => {
     'worklet';
+
     const width = frame.width;
     const height = frame.height;
     const buffer = new Uint8Array(frame.toArrayBuffer()); // RGBA
 
+    const size = 150;
     const centerX = Math.floor(width / 2);
     const centerY = Math.floor(height / 2);
     const half = Math.floor(size / 2);
@@ -49,34 +49,45 @@ export const Receive = () => {
     const startX = centerX - half;
     const startY = centerY - half;
 
-    let brightness = 0;
-    let count = 0;
+    const sigma = size / 3; // standard deviation for Gaussian
+    let weightedBrightness = 0;
+    let totalWeight = 0;
 
-    for (let y = startY; y < startY + size; y++) {
-      for (let x = startX; x < startX + size; x++) {
-        const idx = (y * width + x) * 4;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const frameX = startX + x;
+        const frameY = startY + y;
+        const idx = (frameY * width + frameX) * 4;
 
         const r = buffer[idx];
         const g = buffer[idx + 1];
         const b = buffer[idx + 2];
 
         const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-        brightness += lum;
-        count++;
+
+        // Distance from center
+        const dx = x - size / 2;
+        const dy = y - size / 2;
+        const distSq = dx * dx + dy * dy;
+
+        const weight = Math.exp(-distSq / (2 * sigma * sigma));
+
+        weightedBrightness += lum * weight;
+        totalWeight += weight;
       }
     }
 
-    brightness /= count;
-
-    reportBrightness(brightness); // Report brightness to the main thread
+    const brightness = weightedBrightness / totalWeight;
+    reportBrightness(brightness);
   };
 
   const processYUV = (frame: Frame) => {
     'worklet';
     const width = frame.width;
     const height = frame.height;
-    const buffer = new Uint8Array(frame.toArrayBuffer()); // YUV NV21 or I420 (usually NV21 in mobile)
+    const buffer = new Uint8Array(frame.toArrayBuffer()); // YUV (NV21 or I420)
 
+    const size = 150;
     const centerX = Math.floor(width / 2);
     const centerY = Math.floor(height / 2);
     const half = Math.floor(size / 2);
@@ -84,21 +95,31 @@ export const Receive = () => {
     const startX = centerX - half;
     const startY = centerY - half;
 
-    let brightness = 0;
-    let count = 0;
+    const sigma = size / 3;
+    let weightedBrightness = 0;
+    let totalWeight = 0;
 
-    for (let y = startY; y < startY + size; y++) {
-      for (let x = startX; x < startX + size; x++) {
-        const idx = y * width + x; // Only Y channel
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const frameX = startX + x;
+        const frameY = startY + y;
+        const idx = frameY * width + frameX;
+
         const lum = buffer[idx];
-        brightness += lum;
-        count++;
+
+        const dx = x - size / 2;
+        const dy = y - size / 2;
+        const distSq = dx * dx + dy * dy;
+
+        const weight = Math.exp(-distSq / (2 * sigma * sigma));
+
+        weightedBrightness += lum * weight;
+        totalWeight += weight;
       }
     }
 
-    brightness /= count;
-
-    reportBrightness(brightness); // Report brightness to the main thread
+    const brightness = weightedBrightness / totalWeight;
+    reportBrightness(brightness);
   };
 
   const frameProcessor = useSkiaFrameProcessor(frame => {
