@@ -4,7 +4,7 @@ import './global.css';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Transmit from './views/Transmit';
-import {Receive} from './views/Receive';
+import Receive from './views/Receive';
 
 function App(): React.JSX.Element {
   const Stack = createNativeStackNavigator();
