@@ -78,7 +78,9 @@ const MORSE_CODE: {[key: string]: string} = {
 export const morseToText = (morse: string) => {
   return morse
     .split(' ')
-    .map((code: string) => MORSE_TABLE[code as keyof typeof MORSE_TABLE] || '?')
+    .map(code =>
+      code === '/' ? ' ' : MORSE_TABLE[code as keyof typeof MORSE_TABLE] || '?',
+    )
     .join('');
 };
 

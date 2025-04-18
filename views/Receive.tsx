@@ -1,17 +1,14 @@
-import {PaintStyle, Skia} from '@shopify/react-native-skia';
-import React, {useRef, useState, useCallback} from 'react';
+import React, {useState, useRef, useCallback} from 'react';
 import {View, Text, Button, StyleSheet} from 'react-native';
-import {runOnJS} from 'react-native-reanimated';
 import {
-  Frame,
   useCameraDevice,
   useFrameProcessor,
-  useSkiaFrameProcessor,
+  Camera,
+  Frame,
 } from 'react-native-vision-camera';
-import {Camera} from 'react-native-vision-camera';
 import {Worklets} from 'react-native-worklets-core';
-import {morseToText} from '../utils';
-import SquareOverlay from '../components/SquareOverlay';
+import SquareOverlay from '../components/SquareOverlay'; // Assume you have this component
+import {morseToText} from '../utils'; // Assume you have this util function
 
 export default function Receive() {
   const device = useCameraDevice('back');
@@ -22,15 +19,12 @@ export default function Receive() {
 
   const lastState = useRef<'on' | 'off'>('off');
   const lastChange = useRef(Date.now());
-  const collected = useRef<string[]>([]);
+  const durations = useRef<{type: 'on' | 'off'; duration: number}[]>([]);
 
   const THRESHOLD = 130;
-  const DOT_DURATION = 230; // ms
-  const DASH_DURATION = 300; // ms
-  const CHAR_GAP = 700; // ms
 
   const reset = () => {
-    collected.current = [];
+    durations.current = [];
     lastState.current = 'off';
     lastChange.current = Date.now();
     setMorseCode('');
@@ -45,28 +39,59 @@ export default function Receive() {
 
     if (state !== lastState.current) {
       const duration = now - lastChange.current;
-
-      if (lastState.current === 'on') {
-        if (duration < DOT_DURATION) {
-          collected.current.push('.'); // too short, but treat as dot
-        } else if (duration < DASH_DURATION) {
-          collected.current.push('.');
-        } else {
-          collected.current.push('-');
-        }
-      } else {
-        console.log(`Duration: ${duration}`);
-        if (duration > CHAR_GAP) {
-          collected.current.push(' '); // space between characters
-        }
-      }
+      durations.current.push({type: lastState.current, duration});
 
       lastState.current = state;
       lastChange.current = now;
-
-      setMorseCode(collected.current.join(''));
     }
   };
+
+  const analyzeDurations = () => {
+    const all = durations.current;
+
+    const onDurations = all.filter(d => d.type === 'on').map(d => d.duration);
+    if (onDurations.length === 0) return;
+
+    const unit = Math.min(...onDurations); // dot is shortest flash
+    const dashThreshold = unit * 2.5;
+    const charGapThreshold = unit * 1.5;
+    const wordGapThreshold = unit * 3.5;
+
+    const morse: string[] = [];
+    let currentSymbol = '';
+
+    for (const {type, duration} of all) {
+      if (type === 'on') {
+        currentSymbol += duration < dashThreshold ? '.' : '-';
+      } else {
+        if (duration < charGapThreshold) {
+          // small gap → ignore (same character)
+        } else if (duration < wordGapThreshold) {
+          // medium gap → end of character
+          if (currentSymbol) {
+            morse.push(currentSymbol);
+            currentSymbol = '';
+          }
+        } else {
+          // long gap → end of word
+          if (currentSymbol) {
+            morse.push(currentSymbol);
+            currentSymbol = '';
+          }
+          morse.push('/'); // Word separator
+        }
+      }
+    }
+
+    if (currentSymbol) {
+      morse.push(currentSymbol);
+    }
+
+    const morseStr = morse.join(' ');
+    setMorseCode(morseStr);
+    setDecoded(morseToText(morseStr));
+  };
+
   const myFunctionJS = Worklets.createRunOnJS(reportBrightness);
 
   const frameProcessor = useFrameProcessor(
@@ -158,11 +183,6 @@ export default function Receive() {
     [scanning],
   );
 
-  const decodeMorse = useCallback(() => {
-    const morse = collected.current.join('');
-    setDecoded(morseToText(morse));
-  }, []);
-
   if (!device) {
     return <Text style={styles.text}>No camera device found</Text>;
   }
@@ -183,15 +203,15 @@ export default function Receive() {
         <Button
           title={scanning ? 'Stop Scan' : 'Start Scan'}
           onPress={() => {
-            if (!scanning) {
-              reset();
+            if (scanning) {
+              analyzeDurations(); // Analyze when stopping
+            } else {
+              reset(); // Reset when starting
             }
             setScanning(s => !s);
           }}
         />
-
         <Text style={styles.text}>Morse: {morseCode}</Text>
-        <Button title="Decode" onPress={decodeMorse} />
         <Text style={styles.text}>Decoded: {decoded}</Text>
       </View>
     </View>
