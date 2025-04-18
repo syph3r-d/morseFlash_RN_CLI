@@ -2,60 +2,13 @@ import React, {useState} from 'react';
 import {Button, Text, View} from 'react-native';
 import NativeFlashlight from '../specs/NativeFlashlight';
 import {TextInput, TouchableRipple} from 'react-native-paper';
-
-const MORSE_CODE: {[key: string]: string} = {
-  A: '.-',
-  B: '-...',
-  C: '-.-.',
-  D: '-..',
-  E: '.',
-  F: '..-.',
-  G: '--.',
-  H: '....',
-  I: '..',
-  J: '.---',
-  K: '-.-',
-  L: '.-..',
-  M: '--',
-  N: '-.',
-  O: '---',
-  P: '.--.',
-  Q: '--.-',
-  R: '.-.',
-  S: '...',
-  T: '-',
-  U: '..-',
-  V: '...-',
-  W: '.--',
-  X: '-..-',
-  Y: '-.--',
-  Z: '--..',
-  ' ': ' ',
-  '1': '.----',
-  '2': '..---',
-  '3': '...--',
-  '4': '....-',
-  '5': '.....',
-  '6': '-....',
-  '7': '--...',
-  '8': '---..',
-  '9': '----.',
-  '0': '-----',
-};
+import {textToMorse} from '../utils';
 
 const dotDuration = 200; // milliseconds
 const dashDuration = dotDuration * 3;
 const symbolGap = dotDuration;
 const letterGap = dotDuration * 3;
 const wordGap = dotDuration * 7;
-
-function textToMorse(text: string): string {
-  return text
-    .toUpperCase()
-    .split('')
-    .map(char => MORSE_CODE[char] || '')
-    .join(' ');
-}
 
 function Transmit({navigation}: any): React.JSX.Element {
   const [transmitting, setTransmitting] = useState(false);
