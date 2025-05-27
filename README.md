@@ -1,3 +1,34 @@
+# MorseFlash - React Native Morse Code Communication App
+
+MorseFlash is a React Native application that enables communication through Morse code using device flashlights and cameras. The app provides both transmission and reception capabilities, allowing users to communicate using light signals.
+
+## Features
+
+- **Morse Code Transmission**: Send messages using your device's flashlight in Morse code
+- **Morse Code Reception**: Receive and decode Morse code messages using your device's camera
+- **Modern UI**: Built with React Native Paper and styled using NativeWind (Tailwind CSS)
+- **Real-time Processing**: Uses React Native Vision Camera for real-time video processing
+- **Cross-Platform**: Supports both iOS and Android platforms
+
+## Technical Stack
+
+- React Native 0.79.1
+- React Navigation 7
+- React Native Paper
+- NativeWind/Tailwind CSS
+- React Native Vision Camera
+- React Native Reanimated
+- OpenCV (via react-native-fast-opencv)
+- TypeScript
+
+## Prerequisites
+
+- Node.js >= 18
+- Ruby (for iOS development)
+- CocoaPods (for iOS development)
+- Android Studio (for Android development)
+- Xcode (for iOS development)
+
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
@@ -66,7 +97,7 @@ This is one way to run your app — you can also build it directly from Android 
 
 Now that you have successfully run the app, let's make changes!
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
 
 When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
 
