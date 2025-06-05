@@ -54,8 +54,8 @@ export default function Receive() {
 
     const unit = Math.min(...onDurations); // dot is shortest flash
     const dashThreshold = unit * 2.5;
-    const charGapThreshold = unit * 2.5;
-    const wordGapThreshold = unit * 4;
+    const charGapThreshold = unit * 3;
+    const wordGapThreshold = unit * 4.5;
 
     const morse: string[] = [];
     let currentSymbol = '';

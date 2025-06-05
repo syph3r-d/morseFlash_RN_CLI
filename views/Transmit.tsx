@@ -13,9 +13,10 @@ function Transmit({navigation}: any): React.JSX.Element {
   const durations = useMemo(
     () => ({
       dot: speed,
-      dash: speed * 3,
-      symbolGap: speed * 2.5,
-      wordGap: speed * 4,
+      dash: speed * 3.5,
+      symbolGap: speed,
+      letterGap: speed * 3.5,
+      wordGap: speed * 5,
     }),
     [speed],
   );
@@ -25,19 +26,34 @@ function Transmit({navigation}: any): React.JSX.Element {
     let delay = 0;
     const queue: [number, number][] = [];
 
-    for (const char of morse) {
-      switch (char) {
-        case '.':
-          queue.push([delay, durations.dot]);
-          delay += durations.dot + durations.symbolGap;
-          break;
-        case '-':
-          queue.push([delay, durations.dash]);
-          delay += durations.dash + durations.symbolGap;
-          break;
-        case ' ':
-          delay += durations.wordGap;
-          break;
+    const words = morse.trim().split('   '); // triple space separates words
+
+    for (let w = 0; w < words.length; w++) {
+      const letters = words[w].split(' '); // single space separates letters
+      for (let l = 0; l < letters.length; l++) {
+        const letter = letters[l];
+        for (let s = 0; s < letter.length; s++) {
+          const symbol = letter[s];
+          if (symbol === '.') {
+            queue.push([delay, durations.dot]);
+            delay += durations.dot;
+          } else if (symbol === '-') {
+            queue.push([delay, durations.dash]);
+            delay += durations.dash;
+          }
+          // Add symbol gap after each symbol except the last
+          if (s < letter.length - 1) {
+            delay += durations.symbolGap;
+          }
+        }
+        // Add letter gap after each letter except the last
+        if (l < letters.length - 1) {
+          delay += durations.letterGap;
+        }
+      }
+      // Add word gap after each word except the last
+      if (w < words.length - 1) {
+        delay += durations.wordGap;
       }
     }
 
