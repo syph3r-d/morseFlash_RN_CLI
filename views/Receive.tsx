@@ -1,4 +1,4 @@
-import React, {useState, useRef, useCallback} from 'react';
+import React, {useState, useRef} from 'react';
 import {View, Text, Button, StyleSheet} from 'react-native';
 import {
   useCameraDevice,
@@ -201,9 +201,9 @@ export default function Receive() {
           title={scanning ? 'Stop Scan' : 'Start Scan'}
           onPress={() => {
             if (scanning) {
-              analyzeDurations(); // Analyze when stopping
+              analyzeDurations();
             } else {
-              reset(); // Reset when starting
+              reset();
             }
             setScanning(s => !s);
           }}
