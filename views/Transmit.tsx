@@ -14,9 +14,8 @@ function Transmit({navigation}: any): React.JSX.Element {
     () => ({
       dot: speed,
       dash: speed * 3,
-      symbolGap: speed,
-      letterGap: speed * 3,
-      wordGap: speed * 7,
+      symbolGap: speed * 2.5,
+      wordGap: speed * 4,
     }),
     [speed],
   );
