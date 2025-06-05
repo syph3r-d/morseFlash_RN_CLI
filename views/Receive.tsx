@@ -53,7 +53,19 @@ export default function Receive() {
   });
 
   const analyzeDurations = () => {
+    // Add the final duration when stopping
+    const now = Date.now();
+    const finalDuration = now - lastChange.current;
+    if (finalDuration > 0) {
+      durations.current.push({
+        type: lastState.current,
+        duration: finalDuration,
+      });
+    }
+
     const all = durations.current;
+    if (all.length === 0) return;
+
     const onDurations = all.filter(d => d.type === 'on').map(d => d.duration);
     if (onDurations.length === 0) return;
 
@@ -96,16 +108,34 @@ export default function Receive() {
   const frameProcessor = useFrameProcessor(
     frame => {
       'worklet';
-      // Get the current ROI values. These are shared values updated by SquareOverlay
+      // Get the current ROI values from shared values
       const currentRoiX = roiX.value;
       const currentRoiY = roiY.value;
       const currentRoiSize = roiSize.value;
 
-      // Ensure ROI is within frame boundaries - adjust if necessary
-      const clampedRoiX = Math.max(0, Math.min(currentRoiX, frame.width - currentRoiSize));
-      const clampedRoiY = Math.max(0, Math.min(currentRoiY, frame.height - currentRoiSize));
-      const clampedRoiSize = Math.min(currentRoiSize, frame.width - clampedRoiX, frame.height - clampedRoiY);
+      // Calculate scale factors to map screen coordinates to frame coordinates
+      const scaleX = frame.width / screenWidth;
+      const scaleY = frame.height / screenHeight;
 
+      // Transform screen coordinates to frame coordinates
+      const frameRoiX = currentRoiX * scaleX;
+      const frameRoiY = currentRoiY * scaleY;
+      const frameRoiSize = currentRoiSize * Math.min(scaleX, scaleY); // Use minimum scale to maintain aspect ratio
+
+      // Ensure ROI is within frame boundaries
+      const clampedRoiX = Math.max(
+        0,
+        Math.min(frameRoiX, frame.width - frameRoiSize),
+      );
+      const clampedRoiY = Math.max(
+        0,
+        Math.min(frameRoiY, frame.height - frameRoiSize),
+      );
+      const clampedRoiSize = Math.min(
+        frameRoiSize,
+        frame.width - clampedRoiX,
+        frame.height - clampedRoiY,
+      );
 
       if (frame.pixelFormat === 'yuv') {
         processYUV(frame, clampedRoiX, clampedRoiY, clampedRoiSize);
@@ -113,9 +143,13 @@ export default function Receive() {
         processRGB(frame, clampedRoiX, clampedRoiY, clampedRoiSize);
       }
 
-      function processYUV(f: Frame, xRegion: number, yRegion: number, sizeRegion: number) {
+      function processYUV(
+        f: Frame,
+        xRegion: number,
+        yRegion: number,
+        sizeRegion: number,
+      ) {
         const width = f.width;
-        // const height = f.height; // Unused
         const buffer = new Uint8Array(f.toArrayBuffer());
 
         const startX = Math.floor(xRegion);
@@ -123,22 +157,27 @@ export default function Receive() {
         const regionSize = Math.floor(sizeRegion);
 
         if (regionSize <= 0) {
-            reportBrightness(0); // Or some default value
-            return;
+          reportBrightness(0);
+          return;
         }
 
         const sigma = regionSize / 3;
         let weightedBrightness = 0;
         let totalWeight = 0;
 
+        // Use a Gaussian weighted average for brightness calculation
         for (let y = 0; y < regionSize; y++) {
           for (let x = 0; x < regionSize; x++) {
             const frameX = startX + x;
             const frameY = startY + y;
-            // Boundary checks for frameX and frameY are implicitly handled by clampedRoi
+
+            // Skip pixels outside frame boundaries
+            if (frameX >= width || frameY >= f.height) continue;
+
             const idx = frameY * width + frameX;
             const lum = buffer[idx];
 
+            // Calculate Gaussian weight based on distance from center
             const dx = x - regionSize / 2;
             const dy = y - regionSize / 2;
             const distSq = dx * dx + dy * dy;
@@ -148,13 +187,18 @@ export default function Receive() {
             totalWeight += weight;
           }
         }
-        const brightness = totalWeight > 0 ? weightedBrightness / totalWeight : 0;
+        const brightness =
+          totalWeight > 0 ? weightedBrightness / totalWeight : 0;
         reportBrightness(brightness);
       }
 
-      function processRGB(f: Frame, xRegion: number, yRegion: number, sizeRegion: number) {
+      function processRGB(
+        f: Frame,
+        xRegion: number,
+        yRegion: number,
+        sizeRegion: number,
+      ) {
         const width = f.width;
-        // const height = f.height; // Unused
         const buffer = new Uint8Array(f.toArrayBuffer());
 
         const startX = Math.floor(xRegion);
@@ -162,26 +206,32 @@ export default function Receive() {
         const regionSize = Math.floor(sizeRegion);
 
         if (regionSize <= 0) {
-            reportBrightness(0); // Or some default value
-            return;
+          reportBrightness(0);
+          return;
         }
 
         const sigma = regionSize / 3;
         let weightedBrightness = 0;
         let totalWeight = 0;
 
+        // Use a Gaussian weighted average for brightness calculation
         for (let y = 0; y < regionSize; y++) {
           for (let x = 0; x < regionSize; x++) {
             const frameX = startX + x;
             const frameY = startY + y;
-            // Boundary checks for frameX and frameY are implicitly handled by clampedRoi
+
+            // Skip pixels outside frame boundaries
+            if (frameX >= width || frameY >= f.height) continue;
+
             const idx = (frameY * width + frameX) * 4;
 
+            // Calculate luminance using standard coefficients
             const r = buffer[idx];
             const g = buffer[idx + 1];
             const b = buffer[idx + 2];
             const lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
+            // Calculate Gaussian weight based on distance from center
             const dx = x - regionSize / 2;
             const dy = y - regionSize / 2;
             const distSq = dx * dx + dy * dy;
@@ -191,21 +241,24 @@ export default function Receive() {
             totalWeight += weight;
           }
         }
-        const brightness = totalWeight > 0 ? weightedBrightness / totalWeight : 0;
+        const brightness =
+          totalWeight > 0 ? weightedBrightness / totalWeight : 0;
         reportBrightness(brightness);
       }
     },
-    [scanning, roiX, roiY, roiSize], // Add ROI shared values to dependencies
+    [scanning, roiX, roiY, roiSize],
   );
 
-  const handleSquareUpdate = useCallback((params: {x: number; y: number; size: number}) => {
-    // Update shared values that the frame processor will use
-    // These are updated from the SquareOverlay component
-    roiX.value = params.x;
-    roiY.value = params.y;
-    roiSize.value = params.size;
-  }, [roiX, roiY, roiSize]);
-
+  const handleSquareUpdate = useCallback(
+    (params: {x: number; y: number; size: number}) => {
+      // Update shared values that the frame processor will use
+      // These are updated from the SquareOverlay component
+      roiX.value = params.x;
+      roiY.value = params.y;
+      roiSize.value = params.size;
+    },
+    [roiX, roiY, roiSize],
+  );
 
   if (!device) {
     return <Text style={styles.text}>No camera device found</Text>;
@@ -219,14 +272,14 @@ export default function Receive() {
           device={device}
           isActive={true}
           frameProcessor={frameProcessor}
-          pixelFormat='yuv' // Explicitly set pixelFormat if you know it
+          pixelFormat="yuv" // Explicitly set pixelFormat if you know it
         />
         {/* The SquareOverlay is now positioned by its own animated styles */}
         <SquareOverlay
-            initialX={roiX.value}
-            initialY={roiY.value}
-            initialSize={roiSize.value}
-            onUpdate={handleSquareUpdate}
+          initialX={roiX.value}
+          initialY={roiY.value}
+          initialSize={roiSize.value}
+          onUpdate={handleSquareUpdate}
         />
       </View>
 

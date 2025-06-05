@@ -114,7 +114,7 @@ class NativeFlashlightModule(reactContext: ReactApplicationContext) : NativeFlas
     }
   }
 
-  override fun getConstants(): MutableMap<String, Any> {
+  override fun getTypedExportedConstants(): MutableMap<String, Any> {
     val constants = mutableMapOf<String, Any>()
     constants["maxBrightnessLevel"] = maxBrightnessLevel
     constants["defaultBrightnessLevel"] = defaultBrightnessLevel
