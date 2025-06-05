@@ -7,8 +7,8 @@ import {
   Frame,
 } from 'react-native-vision-camera';
 import {Worklets} from 'react-native-worklets-core';
-import SquareOverlay from '../components/SquareOverlay'; // Assume you have this component
-import {morseToText} from '../utils'; // Assume you have this util function
+import SquareOverlay from '../components/SquareOverlay';
+import {morseToText} from '../utils';
 
 export default function Receive() {
   const device = useCameraDevice('back');
@@ -52,7 +52,7 @@ export default function Receive() {
     const onDurations = all.filter(d => d.type === 'on').map(d => d.duration);
     if (onDurations.length === 0) return;
 
-    const unit = Math.min(...onDurations); // dot is shortest flash
+    const unit = Math.min(...onDurations);
     const dashThreshold = unit * 2.5;
     const charGapThreshold = unit * 3;
     const wordGapThreshold = unit * 4.5;
@@ -65,20 +65,17 @@ export default function Receive() {
         currentSymbol += duration < dashThreshold ? '.' : '-';
       } else {
         if (duration < charGapThreshold) {
-          // small gap → ignore (same character)
         } else if (duration < wordGapThreshold) {
-          // medium gap → end of character
           if (currentSymbol) {
             morse.push(currentSymbol);
             currentSymbol = '';
           }
         } else {
-          // long gap → end of word
           if (currentSymbol) {
             morse.push(currentSymbol);
             currentSymbol = '';
           }
-          morse.push('/'); // Word separator
+          morse.push('/');
         }
       }
     }

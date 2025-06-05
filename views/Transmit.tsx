@@ -8,7 +8,7 @@ import {textToMorse} from '../utils';
 function Transmit({navigation}: any): React.JSX.Element {
   const [transmitting, setTransmitting] = useState(false);
   const [text, setText] = useState('');
-  const [speed, setSpeed] = useState(200); // default dot duration in ms
+  const [speed, setSpeed] = useState(200);
 
   const durations = useMemo(
     () => ({
@@ -26,10 +26,10 @@ function Transmit({navigation}: any): React.JSX.Element {
     let delay = 0;
     const queue: [number, number][] = [];
 
-    const words = morse.trim().split('   '); // triple space separates words
+    const words = morse.trim().split('   ');
 
     for (let w = 0; w < words.length; w++) {
-      const letters = words[w].split(' '); // single space separates letters
+      const letters = words[w].split(' ');
       for (let l = 0; l < letters.length; l++) {
         const letter = letters[l];
         for (let s = 0; s < letter.length; s++) {
@@ -41,17 +41,14 @@ function Transmit({navigation}: any): React.JSX.Element {
             queue.push([delay, durations.dash]);
             delay += durations.dash;
           }
-          // Add symbol gap after each symbol except the last
           if (s < letter.length - 1) {
             delay += durations.symbolGap;
           }
         }
-        // Add letter gap after each letter except the last
         if (l < letters.length - 1) {
           delay += durations.letterGap;
         }
       }
-      // Add word gap after each word except the last
       if (w < words.length - 1) {
         delay += durations.wordGap;
       }
